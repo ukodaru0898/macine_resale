@@ -1,0 +1,27 @@
+# Backend Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install any system dependencies if needed
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy backend files
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy all backend files
+COPY backend/ .
+
+# Create sample_data directory for mounted volume
+RUN mkdir -p /app/sample_data
+
+# Expose backend port
+EXPOSE 5001
+
+# Set environment variable
+ENV PORT=5001
+
+# Run the Flask application
+CMD ["python", "-u", "optimize_excel.py"]

@@ -1,0 +1,84 @@
+body { font-family: Roboto, Arial, sans-serif; }
+
+.table-cell { font-size: 14px; }
+
+header { background: #f9f9f9; padding: 8px; }
+
+/* Make the container scrollable */
+.MuiDataGrid-root { overflow: auto }
+
+@media (max-width: 800px) {
+  .MuiDataGrid-root { font-size: 12px; }
+}
+
+/* Allow column header titles to wrap so long names display fully */
+.MuiDataGrid-columnHeaderTitle {
+  white-space: normal !important;
+  line-height: 1.4 !important;
+  overflow: visible !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+}
+.MuiDataGrid-columnHeader {
+  height: auto !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+}
+.MuiDataGrid-columnHeaderTitleContainer {
+  overflow: visible !important;
+  flex: 1 !important;
+}
+.MuiDataGrid-columnHeaderDraggableContainer {
+  overflow: visible !important;
+}
+
+/* Red header styling for specific columns */
+.red-header .MuiDataGrid-columnHeaderTitle {
+  color: red !important;
+  font-weight: 600 !important;
+}
+
+/* Gray header styling for specific columns */
+.gray-header .MuiDataGrid-columnHeaderTitle {
+  color: gray !important;
+  font-weight: 600 !important;
+}
+
+/* Optimize button animation */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(135, 206, 250, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(135, 206, 250, 0.8);
+  }
+}
+
+.optimize-button:hover {
+  animation: glow 1.5s ease-in-out infinite;
+}
+
+.row-total .table-cell { 
+  font-weight: 700;
+}
+
+/* Reduce row height for totals row */
+.row-total {
+  max-height: 52px !important;
+}
+.row-total .MuiDataGrid-cell {
+  max-height: 52px !important;
+}
+
+/* Remove borders from empty separator row */
+.empty-separator .MuiDataGrid-cell {
+  border: none !important;
+}
+.empty-separator {
+  height: 10px !important;
+  min-height: 10px !important;
+}
+.empty-separator .table-cell {
+  height: 10px !important;
+}
