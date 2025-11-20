@@ -15,10 +15,7 @@ services:
   - type: web
     name: machine-resale-frontend
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.render
     envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: machine-resale-backend
-          envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_BACKEND_URL
+        value: https://machine-resale-backend.onrender.com
