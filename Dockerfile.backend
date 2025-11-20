@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all backend files
 COPY backend/ .
 
+# Copy Base.xlsx from public/sample_data to backend/sample_data
+COPY public/sample_data/Base.xlsx /app/sample_data/Base.xlsx
+
 # Create sample_data directory for mounted volume
 RUN mkdir -p /app/sample_data
 
