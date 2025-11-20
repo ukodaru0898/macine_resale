@@ -28,3 +28,4 @@ ENV PORT=5001
 
 # Run the Flask application
 CMD ["python", "-u", "optimize_excel.py"]
+# Force rebuild Thu Nov 20 17:32:52 EST 2025
