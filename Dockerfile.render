@@ -10,9 +10,12 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build argument for backend URL
+# Build argument for backend URL - must be set at build time for Vite
 ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+
+# Debug: Show what backend URL we're building with
+RUN echo "Building with VITE_BACKEND_URL=$VITE_BACKEND_URL"
 
 # Build the application
 RUN npm run build
@@ -22,6 +25,10 @@ FROM nginx:alpine
 
 # Copy built files to nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy entrypoint script for runtime env vars
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Simple nginx config for static files only (no backend proxy)
 RUN echo 'server { \
@@ -36,4 +43,4 @@ RUN echo 'server { \
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/docker-entrypoint.sh"]

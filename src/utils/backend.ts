@@ -74,9 +74,11 @@ export const postCsvToBackend = async (
   modulesData?: RowData[],
   partsData?: RowData[]
 ) => {
-  // Use environment variable for backend URL (Render deployment) or /api/ for Docker/local
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
+  // Try runtime config first (Docker), then build-time env var (Vite), then default to /api/
+  const backendUrl = (window as any).ENV?.VITE_BACKEND_URL || import.meta.env.VITE_BACKEND_URL || ''
   const url = backendUrl ? `${backendUrl}/api/optimize` : '/api/optimize'
+  
+  console.log('Backend URL:', url) // Debug log
   
   try {
     const payload = {
