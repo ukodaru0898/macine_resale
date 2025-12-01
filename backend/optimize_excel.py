@@ -44,144 +44,182 @@ def optimize():
     try:
         logger.info(f"Starting optimization, reading from: {BASE_PATH}")
         
-        # Get JSON payload with System Recommendation data
-        data = request.get_json()
-        
-        if not data or 'systemRecommendation' not in data:
-            return jsonify({
-                'status': 'error',
-                'message': 'Missing systemRecommendation data in request'
-            }), 400
-        
-        system_rec_data = data['systemRecommendation']
-        logger.info(f"Received System Recommendation data with {len(system_rec_data)} rows")
-        
-        # Log first row for debugging
-        if len(system_rec_data) > 0:
-            logger.info(f"First row sample: {system_rec_data[0]}")
-        
-        # Step 1: Copy Base.xlsx to MasterDB.xlsx
-        logger.info("Copying Base.xlsx to MasterDB.xlsx...")
-        shutil.copy2(BASE_PATH, MASTER_DB_PATH)
-        
-        # Step 2: Prepare User Input1 data from System Recommendation
-        # Map ALL System Recommendation fields to User Input1 fields
-        user_input1_data = []
-        for row in system_rec_data:
-            # Handle deal outcome probability - convert from decimal to percentage if needed
-            prob = row.get('deal_outcome_probability', 0)
-            if isinstance(prob, (int, float)) and prob <= 1:
-                prob = prob * 100  # Convert 0.75 to 75
-            
-            user_input1_data.append({
-                'Machine type': row.get('machine_type', ''),
-                'Offered Bundle': int(float(row.get('offered_bundle', 0))),
-                'QTC average BB price': int(float(row.get('qtc_avg_bb_price', 0))),
-                'Units in sales pipeline': int(float(row.get('units_in_sales_pipeline', 0))),
-                'Deal outcome probability': prob,
-                'Expected pipeline units': int(float(row.get('expected_pipeline_units', 0))),
-                'Units in qualified inventory': int(float(row.get('units_in_qualified_inventory', 0))),
-                'Recommended from other inventory': int(float(row.get('recommended_from_other_inventory', 0))),
-                'Recommended Buy for 12 M': int(float(row.get('recommended_buy_12m', 0))),
-                'Required margin (%)': int(float(row.get('required_margin', 0))),
-                'Recommended BB Price on Bundle (K)': int(float(row.get('recommended_bb_price_on_bundle', 0)))
-            })
-        
-        df_input1 = pd.DataFrame(user_input1_data)
-        logger.info(f"Created User Input1 with {len(df_input1)} rows and {len(df_input1.columns)} columns")
-        logger.info(f"Columns: {list(df_input1.columns)}")
-        logger.info(f"Sample first row: {df_input1.iloc[0].to_dict() if len(df_input1) > 0 else 'No data'}")
-        
-        # Step 3: Prepare User Input2 data (from Max Buy Back Bundle Valuation table)
-        # Get max buyback data if provided, otherwise use margin data
-        max_buyback_data = data.get('maxBuyback', [])
-        
-        if max_buyback_data and len(max_buyback_data) > 0:
-            # Use data from Max Buy Back Bundle Valuation table
-            user_input2_data = []
-            for row in max_buyback_data:
-                # Safe conversion for required_margin
-                required_margin_val = row.get('required_margin', 0)
-                try:
-                    required_margin = int(float(required_margin_val)) if required_margin_val not in [None, ''] else 0
-                except Exception:
-                    required_margin = 0
-                user_input2_data.append({
-                    'Metric': row.get('metric', ''),
-                    'Max_BBB_Valuation': int(float(row.get('valuation', 0))) if row.get('valuation', 0) not in [None, ''] else 0,
-                    'Required Margin': required_margin
-                })
+        # Get JSON payload and determine mode
+        data = request.get_json(silent=True) or {}
+        use_excel_only = bool(os.environ.get('USE_EXCEL_INPUTS') == '1' or data.get('use_excel_inputs'))
+
+        if use_excel_only:
+            logger.info("USE_EXCEL_INPUTS enabled: reading inputs directly from MasterDB.xlsx and skipping UI write.")
+            # If a source Master Excel is provided, copy it first
+            master_src = os.environ.get('MASTER_EXCEL_PATH')
+            if master_src and Path(master_src).exists():
+                logger.info(f"Copying MASTER_EXCEL_PATH from {master_src} -> {MASTER_DB_PATH}")
+                shutil.copy2(master_src, MASTER_DB_PATH)
+            elif not MASTER_DB_PATH.exists():
+                return jsonify({
+                    'status': 'error',
+                    'message': 'MasterDB.xlsx not found. Provide MASTER_EXCEL_PATH or create MasterDB.xlsx with required sheets.'
+                }), 400
         else:
-            # Fallback: Use margin data from request
-            user_input2_data = [
-                {'Metric': 'Refurbishment', 'Max_BBB_Valuation': 0, 'Required Margin': data.get('refurbishmentMargin', 20)},
-                {'Metric': 'Harvesting - Module', 'Max_BBB_Valuation': 0, 'Required Margin': data.get('harvestingModuleMargin', 25)},
-                {'Metric': 'Harvesting - Parts', 'Max_BBB_Valuation': 0, 'Required Margin': data.get('harvestingPartsMargin', 30)},
-                {'Metric': 'Total', 'Max_BBB_Valuation': 0, 'Required Margin': data.get('totalMargin', 22)}
+            # Standard flow: accept UI payload and persist to MasterDB.xlsx
+            if 'systemRecommendation' not in data:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Missing systemRecommendation data in request'
+                }), 400
+
+            system_rec_data = data['systemRecommendation']
+            logger.info(f"Received System Recommendation data with {len(system_rec_data)} rows")
+
+            if len(system_rec_data) > 0:
+                logger.info(f"First row sample: {system_rec_data[0]}")
+
+            # Step 1: Copy ALL sheets from Base.xlsx to MasterDB.xlsx
+            logger.info("Copying all sheets from Base.xlsx to MasterDB.xlsx...")
+            import openpyxl
+            wb_base = openpyxl.load_workbook(BASE_PATH)
+            wb_master = openpyxl.Workbook()
+            # Remove default sheet
+            if 'Sheet' in wb_master.sheetnames:
+                std = wb_master['Sheet']
+                wb_master.remove(std)
+            for sheet in wb_base.sheetnames:
+                ws_base = wb_base[sheet]
+                ws_master = wb_master.create_sheet(title=sheet)
+                for row in ws_base.iter_rows(values_only=True):
+                    ws_master.append(row)
+            wb_master.save(MASTER_DB_PATH)
+
+            # Step 2: Prepare User Input1 data from System Recommendation
+            user_input1_data = []
+            for row in system_rec_data:
+                prob = row.get('deal_outcome_probability', 0)
+                if isinstance(prob, (int, float)) and prob <= 1:
+                    prob = prob * 100
+
+                user_input1_data.append({
+                    'Machine type': row.get('machine_type', ''),
+                    'Offered Bundle': int(float(row.get('offered_bundle', 0))),
+                    'QTC average BB price': int(float(row.get('qtc_avg_bb_price', 0))),
+                    'Units in sales pipeline': int(float(row.get('units_in_sales_pipeline', 0))),
+                    'Deal outcome probability': prob,
+                    'Expected pipeline units': int(float(row.get('expected_pipeline_units', 0))),
+                    'Units in qualified inventory': int(float(row.get('units_in_qualified_inventory', 0))),
+                    'Recommended from other inventory': int(float(row.get('recommended_from_other_inventory', 0))),
+                    'Recommended Buy for 12 M': int(float(row.get('recommended_buy_12m', 0))),
+                    'Required margin (%)': int(float(row.get('required_margin', 0))),
+                    'Recommended BB Price on Bundle (K)': int(float(row.get('recommended_bb_price_on_bundle', 0)))
+                })
+
+            df_input1 = pd.DataFrame(user_input1_data)
+            logger.info(f"Created User Input1 with {len(df_input1)} rows and {len(df_input1.columns)} columns")
+            logger.info(f"Columns: {list(df_input1.columns)}")
+            if len(df_input1) > 0:
+                logger.info(f"Sample first row: {df_input1.iloc[0].to_dict()}")
+
+            # Step 3: Prepare User Input2 data - ensure all required metrics exist
+            max_buyback_data = data.get('maxBuyback', [])
+            
+            # Define all required metrics that bb_recom expects
+            required_metrics = [
+                'Refurbishment',
+                'Harvesting - Module',
+                'Harvesting - Parts',
+                'EOL',
+                'Total Without Scrap',
+                'Scrap',
+                'Total With Scrap'
             ]
-        
-        df_input2 = pd.DataFrame(user_input2_data)
-        logger.info(f"Created User Input2 with {len(df_input2)} rows")
-        logger.info(f"Sample data: {df_input2.head() if len(df_input2) > 0 else 'No data'}")
-        
-        # Step 3.5: Save Systems, Modules, Parts demand data to MasterDB.xlsx
-        systems_data = data.get('systems', [])
-        modules_data = data.get('modules', [])
-        parts_data = data.get('parts', [])
-        
-        # Prepare Systems data
-        systems_list = []
-        for row in systems_data:
-            systems_list.append({
+            
+            # Build a dictionary from incoming data
+            metrics_dict = {}
+            if max_buyback_data and len(max_buyback_data) > 0:
+                for row in max_buyback_data:
+                    metric = str(row.get('metric', '')).strip()
+                    required_margin_val = row.get('required_margin', 0)
+                    try:
+                        required_margin = int(float(required_margin_val)) if required_margin_val not in [None, ''] else 0
+                    except Exception:
+                        required_margin = 0
+                    metrics_dict[metric] = {
+                        'Metric': metric,
+                        'Max_BBB_Valuation': int(float(row.get('valuation', 0))) if row.get('valuation', 0) not in [None, ''] else 0,
+                        'Required Margin': required_margin
+                    }
+            
+            # Ensure all required metrics exist with defaults
+            for metric in required_metrics:
+                if metric not in metrics_dict:
+                    default_margin = 40  # Default 40% for all metrics
+                    if metric == 'Refurbishment':
+                        default_margin = int(float(data.get('refurbishmentMargin', 40)))
+                    elif metric == 'Harvesting - Module':
+                        default_margin = int(float(data.get('harvestingModuleMargin', 40)))
+                    elif metric == 'Harvesting - Parts':
+                        default_margin = int(float(data.get('harvestingPartsMargin', 40)))
+                    elif metric == 'EOL':
+                        default_margin = int(float(data.get('eolMargin', 40)))
+                    elif metric == 'Total Without Scrap':
+                        default_margin = int(float(data.get('totalWithoutScrapMargin', 40)))
+                    elif metric == 'Total With Scrap':
+                        default_margin = int(float(data.get('totalWithScrapMargin', 40)))
+                    elif metric == 'Scrap':
+                        default_margin = 0  # Scrap has no margin requirement
+                    metrics_dict[metric] = {
+                        'Metric': metric,
+                        'Max_BBB_Valuation': 0,
+                        'Required Margin': default_margin
+                    }
+            
+            # Build list in the order of required_metrics to maintain consistent ordering
+            user_input2_data = [metrics_dict[metric] for metric in required_metrics if metric in metrics_dict]
+
+            df_input2 = pd.DataFrame(user_input2_data)
+            logger.info(f"Created User Input2 with {len(df_input2)} rows")
+
+            # Step 3.5: Save Systems, Modules, Parts demand data to MasterDB.xlsx
+            systems_data = data.get('systems', [])
+            modules_data = data.get('modules', [])
+            parts_data = data.get('parts', [])
+
+            systems_list = [{
                 'System': row.get('item', ''),
                 'Demand_12M': int(float(row.get('demand_12m', 0))),
                 'Demand_24M': int(float(row.get('demand_24m', 0))),
                 'Qinventory_12M': int(float(row.get('finished_12m', 0))),
                 'Qinventory_24M': int(float(row.get('finished_24m', 0)))
-            })
-        
-        # Prepare Modules data
-        modules_list = []
-        for row in modules_data:
-            modules_list.append({
+            } for row in systems_data]
+
+            modules_list = [{
                 'Module': row.get('item', ''),
                 'Demand_12M': int(float(row.get('demand_12m', 0))),
                 'Demand_24M': int(float(row.get('demand_24m', 0))),
                 'Qinventory_12M': int(float(row.get('finished_12m', 0))),
                 'Qinventory_24M': int(float(row.get('finished_24m', 0)))
-            })
-        
-        # Prepare Parts data
-        parts_list = []
-        for row in parts_data:
-            parts_list.append({
+            } for row in modules_data]
+
+            parts_list = [{
                 'Module': row.get('item', ''),
                 'Demand_12M': int(float(row.get('demand_12m', 0))),
                 'Demand_24M': int(float(row.get('demand_24m', 0))),
                 'Qinventory_12M': int(float(row.get('finished_12m', 0))),
                 'Qinventory_24M': int(float(row.get('finished_24m', 0)))
-            })
-        
-        df_systems = pd.DataFrame(systems_list)
-        df_modules = pd.DataFrame(modules_list)
-        df_parts = pd.DataFrame(parts_list)
-        
-        logger.info(f"Created Systems data with {len(df_systems)} rows")
-        logger.info(f"Created Modules data with {len(df_modules)} rows")
-        logger.info(f"Created Parts data with {len(df_parts)} rows")
-        
-        # Step 4: Write all data to MasterDB.xlsx
-        with pd.ExcelWriter(MASTER_DB_PATH, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df_input1.to_excel(writer, sheet_name='User Input1', index=False)
-            df_input2.to_excel(writer, sheet_name='User Input2', index=False)
-            if len(df_systems) > 0:
-                df_systems.to_excel(writer, sheet_name='Systems', index=False)
-            if len(df_modules) > 0:
-                df_modules.to_excel(writer, sheet_name='Modules', index=False)
-            if len(df_parts) > 0:
-                df_parts.to_excel(writer, sheet_name='Parts', index=False)
-        
-        logger.info("Saved all data to MasterDB.xlsx")
+            } for row in parts_data]
+
+            df_systems = pd.DataFrame(systems_list)
+            df_modules = pd.DataFrame(modules_list)
+            df_parts = pd.DataFrame(parts_list)
+
+            with pd.ExcelWriter(MASTER_DB_PATH, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                df_input1.to_excel(writer, sheet_name='User Input1', index=False)
+                df_input2.to_excel(writer, sheet_name='User Input2', index=False)
+                if len(df_systems) > 0:
+                    df_systems.to_excel(writer, sheet_name='Systems', index=False)
+                if len(df_modules) > 0:
+                    df_modules.to_excel(writer, sheet_name='Modules', index=False)
+                if len(df_parts) > 0:
+                    df_parts.to_excel(writer, sheet_name='Parts', index=False)
+            logger.info("Saved all data to MasterDB.xlsx")
         
         # Step 5: Run the optimizer script
         logger.info("Running optimizer script...")
@@ -326,20 +364,40 @@ def optimize():
                 outprofit_data.append(row_dict)
             logger.info(f"Read {len(outprofit_data)} rows from {out_tot_sheet_name}")
         
+        # Optional warnings sheet
+        warnings_list = []
+        if 'warnings' in master_wb.sheetnames:
+            warn_ws = master_wb['warnings']
+            headers = [cell.value for cell in warn_ws[1]]
+            for row in warn_ws.iter_rows(min_row=2, values_only=True):
+                w = {}
+                for idx, value in enumerate(row):
+                    if idx < len(headers) and headers[idx]:
+                        w[headers[idx]] = value
+                warnings_list.append(w)
+
         master_wb.close()
         
         logger.info(f"Saved results to: {MASTER_DB_PATH}")
         
-        return jsonify({
+        response = {
             'status': 'success',
             'message': 'Optimization completed successfully. Results saved to MasterDB.xlsx',
             'output_file': 'MasterDB.xlsx',
-            'sheets_updated': ['User Input1', 'User Input2', 'OutBase', 'OutProfit'],
-            'user_input1_data': user_input1_data,
-            'user_input2_data': user_input2_data,
             'outbase_data': outbase_data,
-            'outprofit_data': outprofit_data
-        })
+            'outprofit_data': outprofit_data,
+            'warnings': warnings_list
+        }
+
+        # Only include input echoes if we wrote them from UI
+        if not use_excel_only:
+            response.update({
+                'sheets_updated': ['User Input1', 'User Input2', 'OutBase', 'OutProfit'],
+                'user_input1_data': user_input1_data,
+                'user_input2_data': user_input2_data,
+            })
+
+        return jsonify(response)
         
     except subprocess.TimeoutExpired:
         logger.error("Optimizer script timed out")

@@ -21,9 +21,13 @@ export const TableContainer: React.FC<Props> = ({ schemas, tables, onCellEdit, o
     if (schema.id === 'expected_profit') {
       return rows
     }
-    
-    // Filter out any existing Total rows from Excel
-    const dataRows = rows.filter(r => String(r.metric).toLowerCase() !== 'total')
+    // Filter out any existing Total rows from Excel/UI data
+    const dataRows = rows.filter(r => String(r.metric || '').toLowerCase().trim() !== 'total')
+
+    // For max_buyback, do NOT append a computed Total row (user request)
+    if (schema.id === 'max_buyback') {
+      return dataRows
+    }
     
     // Calculate totals for numeric columns
     const total: any = { id: 'total', metric: 'Total' }

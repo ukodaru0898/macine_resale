@@ -44,6 +44,10 @@ logs/
 # MasterDB.xlsx (generated file, don't commit)
 backend/MasterDB.xlsx
 
+# Archives and binary bundles
+archive/
+*.zip
+
 # Docker volumes
 .docker/
 

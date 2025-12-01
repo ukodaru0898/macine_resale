@@ -130,15 +130,15 @@ const App = () => {
       // Update Max Buy Back Bundle Valuation table from OutProfit
       if (response.outprofit_data && response.user_input2_data) {
         const maxBuybackId = 'max_buyback'
-        const buybackRows = response.outprofit_data.map((row: any, idx: number) => {
+        // Exclude any 'Total' metric rows entirely
+        const filtered = response.outprofit_data.filter((row: any) => String(row.Metric || '').toLowerCase() !== 'total')
+        const buybackRows = filtered.map((row: any, idx: number) => {
           const userInput2Row = response.user_input2_data[idx]
-          const metric = String(row.Metric || '').toLowerCase()
-          const isTotalRow = metric === 'total'
           return {
             id: `${idx}`,
             metric: row.Metric || '',
             valuation: row.Max_BBB_Valuation || 0,
-            required_margin: isTotalRow ? 40 : (userInput2Row?.['Required Margin'] || 0)  // Total row always 40
+            required_margin: userInput2Row?.['Required Margin'] || 0
           }
         })
         updateTableRows(maxBuybackId, buybackRows)
@@ -154,18 +154,8 @@ const App = () => {
           return row.Metric && row.Metric !== 'null' && row.Metric !== null
         })
         
-        // Remove duplicate Total rows if any exist
-        const metricCounts: any = {}
-        const filteredRows = validRows.filter((row: any) => {
-          const metric = String(row.Metric || '').toLowerCase().trim()
-          if (metric === 'total') {
-            if (metricCounts['total']) {
-              return false // Skip duplicate Total row
-            }
-            metricCounts['total'] = true
-          }
-          return true
-        })
+        // Remove any 'Total' metric rows (user request)
+        const filteredRows = validRows.filter((row: any) => String(row.Metric || '').toLowerCase().trim() !== 'total')
         
         const profitRows = filteredRows.map((row: any, idx: number) => {
           return {

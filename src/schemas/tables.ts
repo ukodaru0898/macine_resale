@@ -7,7 +7,7 @@ export const MACHINE_RECOMMENDATION_SCHEMA: TableSchema = {
     { field: 'machine_type', headerName: 'Machine type', width: 180, color: 'blue' },
     { field: 'offered_bundle', headerName: 'Customer excess for sale', width: 120, color: 'green', type: 'number' },
     { field: 'units_in_sales_pipeline', headerName: 'Expected Buy Back', width: 130, color: 'green', type: 'number' },
-    { field: 'units_in_qualified_inventory', headerName: 'Units in qualified inventory', width: 150, color: 'blue', type: 'number' },
+    { field: 'units_in_qualified_inventory', headerName: 'Units in qualified inventory', width: 150, color: 'green', type: 'number' },
     { field: 'recommended_from_other_inventory', headerName: 'Recommend from other inventory', width: 150, color: 'yellow', type: 'number' },
     { field: 'spacer1', headerName: '', width: 20, color: 'none' },
     { field: 'recommended_buy_12m', headerName: 'Recommend Buy for 12 M', width: 160, color: 'yellow', type: 'number' },

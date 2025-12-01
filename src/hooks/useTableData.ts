@@ -158,7 +158,8 @@ export function useTableData() {
           offered_bundle: 0,
           qtc_avg_bb_price: qtcPrices[i] ?? '',
           units_in_sales_pipeline: 0,
-          units_in_qualified_inventory: unitsQualified[i] ?? '',
+          // Do not prefill from DB/Excel; user enters this
+          units_in_qualified_inventory: 0,
           recommended_from_other_inventory: recFromOther[i] ?? '',
           spacer1: '',
           recommended_buy_12m: recBuy12M[i] ?? '',
@@ -167,12 +168,12 @@ export function useTableData() {
         }))
         next[s.id] = computeRows(rows, s)
       } else if (s.id === 'max_buyback') {
-        // Max Buy Back Bundle Valuation - filter OutProfit for type='Buy Back' or Total row
+        // Max Buy Back Bundle Valuation - exclude any 'Total' metric rows per user request
         const outProfit = getSheetByName('OutProfit') || []
         const buybackRows = outProfit.filter((r: any) => {
-          const type = String(r.type || '').toLowerCase()
-          const metric = String(r.Metric || '').toLowerCase()
-          return type.includes('buy back') || metric === 'total'
+          const type = String(r.type || '').toLowerCase().trim()
+          const metric = String(r.Metric || '').toLowerCase().trim()
+          return type.includes('buy back') && metric != 'total'
         })
         const rows = buybackRows.map((r: any, idx: number) => {
           const valuationVal = r.Valuation !== undefined && r.Valuation !== null && r.Valuation !== '' ? Number(r.Valuation) : 0

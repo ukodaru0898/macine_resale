@@ -17,10 +17,10 @@
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.2",
     "typescript": "^5.4.2",
-    "vite": "^5.1.6"
+    "vite": "^5.4.21"
   },
   "scripts": {
-    "start": "vite",
+    "start": "vite --host 127.0.0.1 --port 5173",
     "gen-base": "node scripts/generate_base.js",
     "build": "vite build",
     "preview": "vite preview"
