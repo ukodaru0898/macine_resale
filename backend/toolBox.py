@@ -12,11 +12,18 @@ class tools:
         }
 
     def _safe_read(self, sheet_name, required_cols=None):
-        """Read a sheet; if missing create empty with required columns and record warning."""
+        """Read a sheet; if missing create empty with required columns and record warning.
+
+        - If the sheet is missing, return an empty DataFrame with required columns and warn.
+        - If required columns are missing, add them (filled with 0/empty) and warn.
+        """
         try:
             df = pd.read_excel("MasterDB.xlsx", sheet_name=sheet_name)
         except Exception:
-            raise RuntimeError(f"Required sheet '{sheet_name}' is missing from MasterDB.xlsx. Please ensure all required sheets are present.")
+            # Missing sheet: create empty with required columns and warn
+            self.warnings.setdefault('missing_sheets', []).append(sheet_name)
+            cols = required_cols or []
+            df = pd.DataFrame(columns=cols)
         # Normalize header whitespace
         df.columns = df.columns.astype(str).str.strip()
         # Known header alias fixes per sheet
@@ -56,11 +63,15 @@ class tools:
         if required_cols:
             missing = [c for c in required_cols if c not in df.columns]
             if missing:
-                raise RuntimeError(f"Sheet '{sheet_name}' is missing required columns: {', '.join(missing)}. Please update your Excel file.")
+                # Warn and add missing columns with default values
+                self.warnings.setdefault('missing_columns', {})[sheet_name] = missing
+                for c in missing:
+                    df[c] = 0
         # Coerce numeric-looking columns (exclude obvious id columns)
         for col in df.columns:
             if col.lower() not in {"output_type","input_type","system","module","part","type","id_component","machine type","metric"}:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = df[col].fillna(0)
         return df
 
     def read_data(self):
