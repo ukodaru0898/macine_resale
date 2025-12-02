@@ -93,6 +93,15 @@ export const TableRenderer: React.FC<TableRendererProps> = ({ schema, rows, onCe
         if (isTotalMetric && ((isMaxBuyback && c.field === 'required_margin') || (isExpectedProfit && c.field === 'margin'))) {
           displayValue = params.value // Keep the display value instead of hiding it
         }
+
+      // Force decimal formatting for percentage margin columns (show two decimals)
+      if (c.field === 'margin' && typeof params.value === 'number') {
+        displayValue = params.value.toFixed(2)
+      }
+      if (c.field === 'required_margin' && typeof params.value === 'number') {
+        // Keep as integer if whole number, else show two decimals
+        displayValue = Number.isInteger(params.value) ? params.value : params.value.toFixed(2)
+      }
       
       return (
         <div
