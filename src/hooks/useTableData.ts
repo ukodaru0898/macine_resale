@@ -126,7 +126,7 @@ export function useTableData() {
         const recBuy12M = outBase
           .map((r: any) => {
             const val = r['Recommended Buy for 12 M']
-            return val !== undefined && val !== '' ? Math.round(val * 1000) / 1000 : val
+            return val !== undefined && val !== '' ? Math.round(val * 100) / 100 : val
           })
           .filter((v: any) => v !== undefined && v !== '')
 
@@ -134,7 +134,7 @@ export function useTableData() {
         const unitsQualified = coreQ
           .map((r: any) => {
             const val = r['CoreInventory'] || r['coreinventory']
-            return val !== undefined && val !== '' && val !== 'CoreInventory' && val !== 'coreinventory' ? Math.round(Number(val) * 1000) / 1000 : undefined
+            return val !== undefined && val !== '' && val !== 'CoreInventory' && val !== 'coreinventory' ? Math.round(Number(val) * 100) / 100 : undefined
           })
           .filter((v: any) => v !== undefined && v !== '')
 
@@ -142,7 +142,7 @@ export function useTableData() {
         const recFromOther = outBase
           .map((r: any) => {
             const val = r['Recommended Buy for 12 M']
-            return val !== undefined && val !== '' ? Math.round(val * 1000) / 1000 : val
+            return val !== undefined && val !== '' ? Math.round(val * 100) / 100 : val
           })
           .filter((v: any) => v !== undefined && v !== '')
 
