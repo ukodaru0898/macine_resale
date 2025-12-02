@@ -338,9 +338,12 @@ def optimize():
                 row_dict = {}
                 for idx, value in enumerate(row):
                     if idx < len(headers) and headers[idx]:
-                        # Round numeric values to nearest integer
+                        # Preserve numeric precision (round to 2 decimals only for floats)
                         if isinstance(value, (int, float)) and not isinstance(value, bool):
-                            row_dict[headers[idx]] = round(value)
+                            if isinstance(value, float):
+                                row_dict[headers[idx]] = round(value, 2)
+                            else:
+                                row_dict[headers[idx]] = value
                         else:
                             row_dict[headers[idx]] = value
                 outbase_data.append(row_dict)
@@ -358,9 +361,12 @@ def optimize():
                 row_dict = {}
                 for idx, value in enumerate(row):
                     if idx < len(headers) and headers[idx]:
-                        # Round numeric values to nearest integer
+                        # Preserve precision for numeric values (2 decimals for floats)
                         if isinstance(value, (int, float)) and not isinstance(value, bool):
-                            row_dict[headers[idx]] = round(value)
+                            if isinstance(value, float):
+                                row_dict[headers[idx]] = round(value, 2)
+                            else:
+                                row_dict[headers[idx]] = value
                         else:
                             row_dict[headers[idx]] = value
                 outprofit_data.append(row_dict)
