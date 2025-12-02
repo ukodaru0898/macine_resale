@@ -20,12 +20,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Path to the Excel files
-# In Docker, the sample_data folder is mounted to /app/sample_data
-BASE_PATH = Path(__file__).parent / 'sample_data' / 'Base.xlsx'
-# Check if running in Docker (sample_data is mounted)
-if not BASE_PATH.exists():
-    # Fallback to local development path
+# Prefer public/sample_data to keep server in sync with repo; allow override via BASE_EXCEL_PATH
+BASE_PATH = Path(os.environ.get('BASE_EXCEL_PATH', '')).expanduser() if os.environ.get('BASE_EXCEL_PATH') else None
+if not BASE_PATH or not BASE_PATH.exists():
+    # Primary path inside repo (works on Render too)
     BASE_PATH = Path(__file__).parent.parent / 'public' / 'sample_data' / 'Base.xlsx'
+if not BASE_PATH.exists():
+    # Fallback to legacy backend sample_data if present
+    BASE_PATH = Path(__file__).parent / 'sample_data' / 'Base.xlsx'
 
 MASTER_DB_PATH = Path(__file__).parent / 'MasterDB.xlsx'
 
