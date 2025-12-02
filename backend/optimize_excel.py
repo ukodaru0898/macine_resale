@@ -99,18 +99,29 @@ def optimize():
                 if isinstance(prob, (int, float)) and prob <= 1:
                     prob = prob * 100
 
+                # Preserve two decimal precision for monetary values; keep counts as integers
+                def to_int(v):
+                    try:
+                        return int(float(v))
+                    except Exception:
+                        return 0
+                def to_money(v):
+                    try:
+                        return round(float(v), 2)
+                    except Exception:
+                        return 0.0
                 user_input1_data.append({
                     'Machine type': row.get('machine_type', ''),
-                    'Offered Bundle': int(float(row.get('offered_bundle', 0))),
-                    'QTC average BB price': int(float(row.get('qtc_avg_bb_price', 0))),
-                    'Units in sales pipeline': int(float(row.get('units_in_sales_pipeline', 0))),
+                    'Offered Bundle': to_int(row.get('offered_bundle', 0)),
+                    'QTC average BB price': to_money(row.get('qtc_avg_bb_price', 0)),
+                    'Units in sales pipeline': to_int(row.get('units_in_sales_pipeline', 0)),
                     'Deal outcome probability': prob,
-                    'Expected pipeline units': int(float(row.get('expected_pipeline_units', 0))),
-                    'Units in qualified inventory': int(float(row.get('units_in_qualified_inventory', 0))),
-                    'Recommended from other inventory': int(float(row.get('recommended_from_other_inventory', 0))),
-                    'Recommended Buy for 12 M': int(float(row.get('recommended_buy_12m', 0))),
-                    'Required margin (%)': int(float(row.get('required_margin', 0))),
-                    'Recommended BB Price on Bundle (K)': int(float(row.get('recommended_bb_price_on_bundle', 0)))
+                    'Expected pipeline units': to_int(row.get('expected_pipeline_units', 0)),
+                    'Units in qualified inventory': to_int(row.get('units_in_qualified_inventory', 0)),
+                    'Recommended from other inventory': to_int(row.get('recommended_from_other_inventory', 0)),
+                    'Recommended Buy for 12 M': to_int(row.get('recommended_buy_12m', 0)),
+                    'Required margin (%)': to_int(row.get('required_margin', 0)),
+                    'Recommended BB Price on Bundle (K)': to_money(row.get('recommended_bb_price_on_bundle', 0))
                 })
 
             df_input1 = pd.DataFrame(user_input1_data)
