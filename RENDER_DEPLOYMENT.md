@@ -59,11 +59,35 @@ chmod +x github-setup.sh
    ```
    PORT = 5001
    PYTHONUNBUFFERED = 1
+   DATABASE_URL = (see PostgreSQL setup below)
    ```
 
 7. **Advanced Settings** (expand):
    - Health Check Path: `/health`
    - Docker Command: (leave empty)
+
+**PostgreSQL Database Setup** (Recommended for Production):
+
+1. In Render Dashboard, click **"New +"** → **"PostgreSQL"**
+2. Configure:
+   ```
+   Name:          machine-resale-db
+   Database:      machine_resale
+   User:          (auto-generated)
+   Region:        Same as backend
+   Instance Type: Free
+   ```
+3. Click **"Create Database"**
+4. Wait 2 minutes for provisioning
+5. Copy the **Internal Database URL** (starts with `postgresql://`)
+6. Go back to your backend service → Environment → Add:
+   ```
+   DATABASE_URL = postgresql://user:pass@host/dbname
+   ```
+   (Paste the Internal Database URL you copied)
+7. Save and trigger manual deploy
+
+**Note**: Without PostgreSQL, user accounts will reset on every deployment. SQLite is only for local development.
 
 8. Click **"Create Web Service"**
 

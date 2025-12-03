@@ -20,7 +20,8 @@ CORS(app, supports_credentials=True)
 # Import auth service
 try:
     from auth_service import AuthService
-    auth_service = AuthService()
+    # Pass None to use DATABASE_URL from environment or fallback to SQLite
+    auth_service = AuthService(db_url=None)
     AUTH_ENABLED = True
 except ImportError:
     AUTH_ENABLED = False

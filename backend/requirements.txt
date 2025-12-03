@@ -9,3 +9,4 @@ requests==2.31.0
 # Authentication dependencies (Python 3.13 compatible)
 SQLAlchemy>=2.0.36
 bcrypt==4.1.2
+psycopg2-binary==2.9.10  # PostgreSQL adapter

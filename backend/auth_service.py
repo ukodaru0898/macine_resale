@@ -11,7 +11,13 @@ import re
 class AuthService:
     """Service for user authentication and session management"""
     
-    def __init__(self, db_url='sqlite:///users.db'):
+    def __init__(self, db_url=None):
+        """
+        Initialize AuthService
+        
+        Args:
+            db_url: Database URL. If None, uses DATABASE_URL env var or defaults to SQLite
+        """
         self.engine = get_db_engine(db_url)
         
     def _get_session(self):

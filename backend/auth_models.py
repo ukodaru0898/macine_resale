@@ -68,9 +68,39 @@ class Session(Base):
 
 
 # Database setup helper
-def get_db_engine(db_url='sqlite:///users.db'):
-    """Create and return database engine"""
-    engine = create_engine(db_url, echo=False)
+def get_db_engine(db_url=None):
+    """
+    Create and return database engine
+    
+    Args:
+        db_url: Database URL. If None, uses DATABASE_URL env var or defaults to SQLite
+    """
+    import os
+    
+    if db_url is None:
+        # Try to get from environment (Render provides DATABASE_URL for PostgreSQL)
+        db_url = os.environ.get('DATABASE_URL')
+        
+        # Render uses postgres:// but SQLAlchemy 2.0 requires postgresql://
+        if db_url and db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        
+        # Fallback to SQLite for local development
+        if not db_url:
+            db_url = 'sqlite:///users.db'
+    
+    # Configure connection pool for PostgreSQL
+    if db_url.startswith('postgresql://'):
+        engine = create_engine(
+            db_url,
+            echo=False,
+            pool_pre_ping=True,  # Verify connections before using
+            pool_size=5,
+            max_overflow=10
+        )
+    else:
+        engine = create_engine(db_url, echo=False)
+    
     Base.metadata.create_all(engine)
     return engine
 
