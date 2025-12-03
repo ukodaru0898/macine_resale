@@ -119,7 +119,9 @@ export const authApi = {
   async login(body: { usernameOrEmail: string; password: string }) {
     const base = getBackendBaseUrl()
     const url = base ? `${base}/api/auth/login` : '/api/auth/login'
-    const resp = await axios.post(url, body, { withCredentials: true })
+    // Backend expects 'username' key (can be username or email)
+    const payload = { username: body.usernameOrEmail, password: body.password }
+    const resp = await axios.post(url, payload, { withCredentials: true })
     return resp.data
   },
   async register(body: { username: string; email: string; password: string; full_name?: string; company?: string }) {
