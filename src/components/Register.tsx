@@ -46,13 +46,16 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
     setLoading(true)
 
     try {
-      const data = await authApi.register({
+      const payload = {
         username: formData.username,
         email: formData.email,
         password: formData.password,
         full_name: formData.full_name,
         company: formData.company,
-      })
+      }
+      console.log('Register payload:', payload)
+      
+      const data = await authApi.register(payload)
 
       if (data.status === 'success') {
         setSuccess(true)
@@ -63,7 +66,10 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
         setError(data.message || 'Registration failed')
       }
     } catch (err: any) {
-      setError(err?.message || 'Network error. Please check backend URL.')
+      console.error('Registration error:', err)
+      console.error('Error response:', err?.response?.data)
+      const errorMsg = err?.response?.data?.message || err?.message || 'Network error. Please check backend URL.'
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }
