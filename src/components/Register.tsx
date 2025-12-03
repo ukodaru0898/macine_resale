@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Box, TextField, Button, Typography, Paper, Alert, Link, CircularProgress } from '@mui/material'
+import { authApi } from '../utils/backend'
 
 interface RegisterProps {
   onRegisterSuccess: () => void
@@ -45,21 +46,13 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
     setLoading(true)
 
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.full_name,
-          company: formData.company,
-        }),
+      const data = await authApi.register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+        company: formData.company,
       })
-
-      const data = await response.json()
 
       if (data.status === 'success') {
         setSuccess(true)
@@ -69,8 +62,8 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
       } else {
         setError(data.message || 'Registration failed')
       }
-    } catch (err) {
-      setError('Network error. Please check if the backend server is running.')
+    } catch (err: any) {
+      setError(err?.message || 'Network error. Please check backend URL.')
     } finally {
       setLoading(false)
     }

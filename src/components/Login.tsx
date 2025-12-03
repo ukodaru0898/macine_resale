@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Box, TextField, Button, Typography, Paper, Alert, Link, CircularProgress } from '@mui/material'
+import { authApi } from '../utils/backend'
 
 interface LoginProps {
   onLoginSuccess: (user: any, token: string) => void
@@ -18,16 +19,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
     setLoading(true)
 
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ username, password }),
-      })
-
-      const data = await response.json()
+      const data = await authApi.login({ usernameOrEmail: username, password })
 
       if (data.status === 'success') {
         // Store session token in localStorage
@@ -37,8 +29,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
       } else {
         setError(data.message || 'Login failed')
       }
-    } catch (err) {
-      setError('Network error. Please check if the backend server is running.')
+    } catch (err: any) {
+      setError(err?.message || 'Network error. Please check backend URL.')
     } finally {
       setLoading(false)
     }

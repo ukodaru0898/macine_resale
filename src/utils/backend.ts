@@ -106,3 +106,34 @@ export const postCsvToBackend = async (
     throw new Error('Failed to run optimization. Please check the backend logs.')
   }
 }
+
+/**
+ * Small helper to build auth URLs consistently for Render or local
+ */
+export const getBackendBaseUrl = () => {
+  const backendUrl = (window as any).ENV?.VITE_BACKEND_URL || import.meta.env.VITE_BACKEND_URL || ''
+  return backendUrl || ''
+}
+
+export const authApi = {
+  async login(body: { usernameOrEmail: string; password: string }) {
+    const base = getBackendBaseUrl()
+    const url = base ? `${base}/api/auth/login` : '/api/auth/login'
+    const resp = await axios.post(url, body, { withCredentials: true })
+    return resp.data
+  },
+  async register(body: { username: string; email: string; password: string; full_name?: string; company?: string }) {
+    const base = getBackendBaseUrl()
+    const url = base ? `${base}/api/auth/register` : '/api/auth/register'
+    const resp = await axios.post(url, body, { withCredentials: true })
+    return resp.data
+  },
+  async logout(token?: string | null) {
+    const base = getBackendBaseUrl()
+    const url = base ? `${base}/api/auth/logout` : '/api/auth/logout'
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const resp = await axios.post(url, {}, { withCredentials: true, headers })
+    return resp.data
+  },
+}

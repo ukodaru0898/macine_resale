@@ -7,7 +7,7 @@ import TableContainer from './components/TableContainer'
 import Login from './components/Login'
 import Register from './components/Register'
 import { useTableData } from './hooks/useTableData'
-import { composeCombinedCSV, parseBackendCSV, postCsvToBackend } from './utils/backend'
+import { composeCombinedCSV, parseBackendCSV, postCsvToBackend, authApi } from './utils/backend'
 import { rowsToCSV, saveCSVFile } from './utils/csv'
 import { readOptimizationResults, mapOutBBToSystemRec } from './utils/excel'
 
@@ -75,13 +75,7 @@ const App = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://127.0.0.1:5001/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${sessionToken}`,
-        },
-        credentials: 'include',
-      })
+      await authApi.logout(sessionToken)
     } catch (e) {
       console.error('Logout error:', e)
     }
