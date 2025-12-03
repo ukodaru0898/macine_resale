@@ -494,6 +494,22 @@ def optimize():
         # Use the original generated sheet name (out_bb1, out_bb, etc.)
         outbase_data = []
         if out_bb_sheet_name and out_bb_sheet_name in master_wb.sheetnames:
+            # Helper function to truncate monetary values (NOT round)
+            def to_money_outbase(v):
+                try:
+                    from decimal import Decimal, ROUND_DOWN, InvalidOperation, localcontext
+                    with localcontext() as ctx:
+                        ctx.prec = 28
+                        d = Decimal(str(v))
+                        return float(d.quantize(Decimal('0.01'), rounding=ROUND_DOWN))
+                except (InvalidOperation, Exception):
+                    try:
+                        import math
+                        f = float(v)
+                        return math.floor(f * 100.0) / 100.0
+                    except Exception:
+                        return 0.0
+            
             outbase_ws = master_wb[out_bb_sheet_name]
             # Read header row
             headers = [cell.value for cell in outbase_ws[1]]
@@ -502,10 +518,10 @@ def optimize():
                 row_dict = {}
                 for idx, value in enumerate(row):
                     if idx < len(headers) and headers[idx]:
-                        # Preserve numeric precision (round to 2 decimals only for floats)
+                        # Truncate monetary values to 2 decimals (NO rounding)
                         if isinstance(value, (int, float)) and not isinstance(value, bool):
                             if isinstance(value, float):
-                                row_dict[headers[idx]] = round(value, 2)
+                                row_dict[headers[idx]] = to_money_outbase(value)
                             else:
                                 row_dict[headers[idx]] = value
                         else:
@@ -517,6 +533,22 @@ def optimize():
         # Use the original generated sheet name (out_tot1, out_tot, etc.)
         outprofit_data = []
         if out_tot_sheet_name and out_tot_sheet_name in master_wb.sheetnames:
+            # Helper function to truncate monetary values (NOT round)
+            def to_money(v):
+                try:
+                    from decimal import Decimal, ROUND_DOWN, InvalidOperation, localcontext
+                    with localcontext() as ctx:
+                        ctx.prec = 28
+                        d = Decimal(str(v))
+                        return float(d.quantize(Decimal('0.01'), rounding=ROUND_DOWN))
+                except (InvalidOperation, Exception):
+                    try:
+                        import math
+                        f = float(v)
+                        return math.floor(f * 100.0) / 100.0
+                    except Exception:
+                        return 0.0
+            
             outprofit_ws = master_wb[out_tot_sheet_name]
             # Read header row
             headers = [cell.value for cell in outprofit_ws[1]]
@@ -525,10 +557,10 @@ def optimize():
                 row_dict = {}
                 for idx, value in enumerate(row):
                     if idx < len(headers) and headers[idx]:
-                        # Preserve precision for numeric values (2 decimals for floats)
+                        # Truncate monetary values to 2 decimals (NO rounding)
                         if isinstance(value, (int, float)) and not isinstance(value, bool):
                             if isinstance(value, float):
-                                row_dict[headers[idx]] = round(value, 2)
+                                row_dict[headers[idx]] = to_money(value)
                             else:
                                 row_dict[headers[idx]] = value
                         else:

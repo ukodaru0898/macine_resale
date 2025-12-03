@@ -94,8 +94,13 @@ export const TableRenderer: React.FC<TableRendererProps> = ({ schema, rows, onCe
           displayValue = params.value // Keep the display value instead of hiding it
         }
 
-      // Force decimal formatting for percentage margin columns (show two decimals)
+      // Force decimal formatting for key numeric display columns
+      // Margin (%) columns: always show two decimals
       if (c.field === 'margin' && typeof params.value === 'number') {
+        displayValue = params.value.toFixed(2)
+      }
+      // Profit/Valuation columns: show two decimals e.g., 8001.30
+      if (c.field === 'valuation' && typeof params.value === 'number') {
         displayValue = params.value.toFixed(2)
       }
       if (c.field === 'required_margin' && typeof params.value === 'number') {

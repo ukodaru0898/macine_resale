@@ -12,18 +12,19 @@ import { rowsToCSV, saveCSVFile } from './utils/csv'
 import { readOptimizationResults, mapOutBBToSystemRec } from './utils/excel'
 
 const App = () => {
-  const { schemas, tables, importExcel, updateRowCell, recomputeTable, updateTableRows } = useTableData()
-  const [filters, setFilters] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [autoLoaded, setAutoLoaded] = useState(false)
-  const [snack, setSnack] = useState<{ open: boolean; message?: string }>({ open: false })
-  
-  // Authentication state
+  // Authentication state - MUST be declared before any conditional returns
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [sessionToken, setSessionToken] = useState<string | null>(null)
   const [showLogin, setShowLogin] = useState(true)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  
+  // ALL hooks must be called unconditionally
+  const { schemas, tables, importExcel, updateRowCell, recomputeTable, updateTableRows } = useTableData()
+  const [filters, setFilters] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [autoLoaded, setAutoLoaded] = useState(false)
+  const [snack, setSnack] = useState<{ open: boolean; message?: string }>({ open: false })
 
   // Check for existing session on mount
   useEffect(() => {
@@ -44,6 +45,27 @@ const App = () => {
     }
   }, [])
 
+  // Auto-load sample Base.xlsx from public/sample_data on mount (if present)
+  useEffect(() => {
+    if (autoLoaded || !isAuthenticated) return
+    const loadDemo = async () => {
+      try {
+        const resp = await fetch('/sample_data/Base.xlsx')
+        if (!resp.ok) return
+        const buffer = await resp.arrayBuffer()
+        const file = new File([buffer], 'Base.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        await importExcel(file)
+        setAutoLoaded(true)
+        setSnack({ open: true, message: 'Demo Base.xlsx auto-loaded' })
+      } catch (e) {
+        // ignore - demo file not present or network error
+        console.debug('Auto-load demo Base.xlsx failed:', e)
+      }
+    }
+    loadDemo()
+  }, [autoLoaded, isAuthenticated, importExcel])
+
+  // Handler functions - defined after all hooks
   const handleLoginSuccess = (user: any, token: string) => {
     setCurrentUser(user)
     setSessionToken(token)
@@ -81,7 +103,11 @@ const App = () => {
     setAnchorEl(null)
   }
 
-  // Show auth screens if not authenticated
+  const handleLoadExcel = async (file: File) => {
+    await importExcel(file)
+  }
+
+  // Show auth screens if not authenticated - AFTER all hooks
   if (!isAuthenticated) {
     if (showLogin) {
       return <Login 
@@ -95,31 +121,6 @@ const App = () => {
       />
     }
   }
-
-  // Import Excel
-  const handleLoadExcel = async (file: File) => {
-    await importExcel(file)
-  }
-
-  // Auto-load sample Base.xlsx from public/sample_data on mount (if present)
-  useEffect(() => {
-    if (autoLoaded) return
-    const loadDemo = async () => {
-      try {
-        const resp = await fetch('/sample_data/Base.xlsx')
-        if (!resp.ok) return
-        const buffer = await resp.arrayBuffer()
-        const file = new File([buffer], 'Base.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-        await importExcel(file)
-        setAutoLoaded(true)
-        setSnack({ open: true, message: 'Demo Base.xlsx auto-loaded' })
-      } catch (e) {
-        // ignore - demo file not present or network error
-        console.debug('Auto-load demo Base.xlsx failed:', e)
-      }
-    }
-    loadDemo()
-  }, [autoLoaded, importExcel])
 
   const handleSaveInputs = async () => {
     // For each schema, build CSV and save
