@@ -411,7 +411,7 @@ class tools:
 
         df_input2.loc[df_input2['Metric'] == 'Refurbishment', 'Max_BBB_Valuation'] = price_ref * (1 - margin_ref) - cost_ref if price_ref else -cost_ref
         df_input2.loc[df_input2['Metric'] == 'Refurbishment', 'Profit'] = price_ref - cost_ref
-        df_input2.loc[df_input2['Metric'] == 'Refurbishment', 'Margin_toGet'] = safe_margin(price_ref, cost_ref)
+        df_input2.loc[df_input2['Metric'] == 'Refurbishment', 'Margin_toGet'] = safe_margin(price_ref, cost_ref) * 100
 
         price_mod = df_bb[df_bb['to_harv'] > 0]['price_mod'].sum()
         cost_mod = df_bb[df_bb['to_harv'] > 0]['cost_mod'].sum()
@@ -420,7 +420,7 @@ class tools:
 
         df_input2.loc[df_input2['Metric'] == 'Harvesting - Module', 'Max_BBB_Valuation'] = price_mod * (1 - margin_mod) - cost_mod if price_mod else -cost_mod
         df_input2.loc[df_input2['Metric'] == 'Harvesting - Module', 'Profit'] = price_mod - cost_mod
-        df_input2.loc[df_input2['Metric'] == 'Harvesting - Module', 'Margin_toGet'] = safe_margin(price_mod, cost_mod)
+        df_input2.loc[df_input2['Metric'] == 'Harvesting - Module', 'Margin_toGet'] = safe_margin(price_mod, cost_mod) * 100
 
         price_parts = df_bb[df_bb['to_harv'] > 0]['price_part'].sum()
         cost_parts = df_bb[df_bb['to_harv'] > 0]['cost_part'].sum()
@@ -429,7 +429,7 @@ class tools:
 
         df_input2.loc[df_input2['Metric'] == 'Harvesting - Parts', 'Max_BBB_Valuation'] = price_parts * (1 - margin_part) - cost_parts if price_parts else -cost_parts
         df_input2.loc[df_input2['Metric'] == 'Harvesting - Parts', 'Profit'] = price_parts - cost_parts
-        df_input2.loc[df_input2['Metric'] == 'Harvesting - Parts', 'Margin_toGet'] = safe_margin(price_parts, cost_parts)
+        df_input2.loc[df_input2['Metric'] == 'Harvesting - Parts', 'Margin_toGet'] = safe_margin(price_parts, cost_parts) * 100
 
         price_tot = df_bb[df_bb['bb'] > 0]['price'].sum()
         cost_wo_scrap = df_bb[df_bb['bb'] > 0]['cost'].sum()
@@ -441,7 +441,7 @@ class tools:
         margin_wo = tot_wo_row.iloc[0] / 100.0 if not tot_wo_row.empty else 0.0
         df_input2.loc[df_input2['Metric'] == 'Total Without Scrap', 'Max_BBB_Valuation'] = price_tot * (1 - margin_wo) - cost_wo_scrap
         df_input2.loc[df_input2['Metric'] == 'Total Without Scrap', 'Profit'] = price_tot - cost_wo_scrap
-        df_input2.loc[df_input2['Metric'] == 'Total Without Scrap', 'Margin_toGet'] = safe_margin(price_tot, cost_wo_scrap)
+        df_input2.loc[df_input2['Metric'] == 'Total Without Scrap', 'Margin_toGet'] = safe_margin(price_tot, cost_wo_scrap) * 100
 
         # Scrap only
         scrap_row = df_input2.loc[df_input2['Metric'] == 'Scrap', 'Required Margin']
@@ -457,7 +457,7 @@ class tools:
         cost_with = cost_wo_scrap + cost_scrap_tot
         df_input2.loc[df_input2['Metric'] == 'Total With Scrap', 'Max_BBB_Valuation'] = price_with * (1 - margin_with) - cost_with
         df_input2.loc[df_input2['Metric'] == 'Total With Scrap', 'Profit'] = price_with - cost_with
-        df_input2.loc[df_input2['Metric'] == 'Total With Scrap', 'Margin_toGet'] = safe_margin(price_with, cost_with)
+        df_input2.loc[df_input2['Metric'] == 'Total With Scrap', 'Margin_toGet'] = safe_margin(price_with, cost_with) * 100
 
         output1 = df_bb[['Machine', 'bb','inv_use','Required margin (%)','Recommended_BB_Price']].rename(columns={
             'bb': 'Recommended Buy',

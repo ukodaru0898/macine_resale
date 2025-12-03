@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Box, Button, Container, CircularProgress, Snackbar, Alert, IconButton, Menu, MenuItem, Typography } from '@mui/material'
-import { AccountCircle } from '@mui/icons-material'
+import { Box, Button, Container, CircularProgress, Snackbar, Alert } from '@mui/material'
 import HeaderFilters from './components/HeaderFilters'
 import { Legend } from './components/Legend'
 import TableContainer from './components/TableContainer'
-import Login from './components/Login'
-import Register from './components/Register'
 import { useTableData } from './hooks/useTableData'
 import { composeCombinedCSV, parseBackendCSV, postCsvToBackend } from './utils/backend'
 import { rowsToCSV, saveCSVFile } from './utils/csv'
@@ -17,84 +14,6 @@ const App = () => {
   const [loading, setLoading] = useState(false)
   const [autoLoaded, setAutoLoaded] = useState(false)
   const [snack, setSnack] = useState<{ open: boolean; message?: string }>({ open: false })
-  
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [sessionToken, setSessionToken] = useState<string | null>(null)
-  const [showLogin, setShowLogin] = useState(true)
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-
-  // Check for existing session on mount
-  useEffect(() => {
-    const token = localStorage.getItem('session_token')
-    const user = localStorage.getItem('user')
-    
-    if (token && user) {
-      try {
-        const userData = JSON.parse(user)
-        setSessionToken(token)
-        setCurrentUser(userData)
-        setIsAuthenticated(true)
-      } catch (e) {
-        // Invalid stored data, clear it
-        localStorage.removeItem('session_token')
-        localStorage.removeItem('user')
-      }
-    }
-  }, [])
-
-  const handleLoginSuccess = (user: any, token: string) => {
-    setCurrentUser(user)
-    setSessionToken(token)
-    setIsAuthenticated(true)
-    setSnack({ open: true, message: `Welcome back, ${user.full_name || user.username}!` })
-  }
-
-  const handleLogout = async () => {
-    try {
-      await fetch('http://127.0.0.1:5001/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${sessionToken}`,
-        },
-        credentials: 'include',
-      })
-    } catch (e) {
-      console.error('Logout error:', e)
-    }
-    
-    localStorage.removeItem('session_token')
-    localStorage.removeItem('user')
-    setIsAuthenticated(false)
-    setCurrentUser(null)
-    setSessionToken(null)
-    setAnchorEl(null)
-    setSnack({ open: true, message: 'Logged out successfully' })
-  }
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-  }
-
-  // Show auth screens if not authenticated
-  if (!isAuthenticated) {
-    if (showLogin) {
-      return <Login 
-        onLoginSuccess={handleLoginSuccess} 
-        onSwitchToRegister={() => setShowLogin(false)} 
-      />
-    } else {
-      return <Register 
-        onRegisterSuccess={() => setShowLogin(true)} 
-        onSwitchToLogin={() => setShowLogin(true)} 
-      />
-    }
-  }
 
   // Import Excel
   const handleLoadExcel = async (file: File) => {
@@ -291,29 +210,7 @@ const App = () => {
             <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Buy Back Optimiser</h1>
           </Box>
         </Box>
-        <Box display="flex" flexDirection="column" gap={1}>
-          {/* User Profile Menu */}
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Typography variant="body2" color="textSecondary">
-              {currentUser?.full_name || currentUser?.username}
-            </Typography>
-            <IconButton onClick={handleMenuOpen} color="primary">
-              <AccountCircle fontSize="large" />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              <MenuItem disabled>
-                <Typography variant="body2">
-                  {currentUser?.email}
-                </Typography>
-              </MenuItem>
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
-            </Menu>
-          </Box>
-          
+        <Box>
           <Box display="flex" flexDirection="column" gap={1} padding={2} border="1px solid #ccc" borderRadius="4px">
             <Box display="flex" alignItems="center" gap={1}>
               <Box width="40px" height="20px" bgcolor="rgb(254, 209, 0)" />

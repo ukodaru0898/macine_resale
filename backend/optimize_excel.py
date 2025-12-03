@@ -12,9 +12,19 @@ import logging
 import subprocess
 import shutil
 import os
+from functools import wraps
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
+
+# Import auth service
+try:
+    from auth_service import AuthService
+    auth_service = AuthService()
+    AUTH_ENABLED = True
+except ImportError:
+    AUTH_ENABLED = False
+    logging.warning("Authentication service not available. Running without auth.")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,8 +41,139 @@ if not BASE_PATH.exists():
 
 MASTER_DB_PATH = Path(__file__).parent / 'MasterDB.xlsx'
 
+# Authentication decorator
+def require_auth(f):
+    """Decorator to require authentication for endpoints"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not AUTH_ENABLED:
+            return f(*args, **kwargs)
+        
+        # Get session token from header or cookie
+        token = request.headers.get('Authorization')
+        if token and token.startswith('Bearer '):
+            token = token[7:]
+        elif 'session_token' in request.cookies:
+            token = request.cookies.get('session_token')
+        else:
+            return jsonify({'status': 'error', 'message': 'Authentication required'}), 401
+        
+        # Validate session
+        is_valid, user_data = auth_service.validate_session(token)
+        if not is_valid:
+            return jsonify({'status': 'error', 'message': 'Invalid or expired session'}), 401
+        
+        # Add user data to request context
+        request.user = user_data
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+
+# ============ Authentication Endpoints ============
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """Register a new user account"""
+    if not AUTH_ENABLED:
+        return jsonify({'status': 'error', 'message': 'Authentication not available'}), 503
+    
+    data = request.get_json() or {}
+    
+    success, message, user_data = auth_service.register_user(
+        username=data.get('username', ''),
+        email=data.get('email', ''),
+        password=data.get('password', ''),
+        full_name=data.get('full_name', ''),
+        company=data.get('company', '')
+    )
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': message,
+            'user': user_data
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': message
+        }), 400
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login and create user session"""
+    if not AUTH_ENABLED:
+        return jsonify({'status': 'error', 'message': 'Authentication not available'}), 503
+    
+    data = request.get_json() or {}
+    
+    success, message, user_data, session_token = auth_service.login(
+        username_or_email=data.get('username', ''),
+        password=data.get('password', ''),
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent', '')
+    )
+    
+    if success:
+        response = jsonify({
+            'status': 'success',
+            'message': message,
+            'user': user_data,
+            'session_token': session_token
+        })
+        # Set session cookie
+        response.set_cookie('session_token', session_token, httponly=True, 
+                           max_age=7*24*60*60, samesite='Lax')  # 7 days
+        return response
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': message
+        }), 401
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+@require_auth
+def logout():
+    """Logout and destroy session"""
+    if not AUTH_ENABLED:
+        return jsonify({'status': 'error', 'message': 'Authentication not available'}), 503
+    
+    token = request.headers.get('Authorization', '').replace('Bearer ', '') or \
+            request.cookies.get('session_token')
+    
+    if token:
+        auth_service.logout(token)
+    
+    response = jsonify({
+        'status': 'success',
+        'message': 'Logged out successfully'
+    })
+    response.set_cookie('session_token', '', expires=0)
+    return response
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@require_auth
+def get_current_user():
+    """Get current authenticated user info"""
+    if not AUTH_ENABLED:
+        return jsonify({'status': 'error', 'message': 'Authentication not available'}), 503
+    
+    return jsonify({
+        'status': 'success',
+        'user': request.user
+    })
+
+
+# ============ Main Application Endpoints ============
+
+
 @app.route('/api/optimize', methods=['POST'])
 @app.route('/optimize', methods=['POST'])  # Add route without /api prefix for nginx compatibility
+# @require_auth  # Uncomment to require authentication for optimization
 def optimize():
     """
     Optimization endpoint that:
@@ -105,11 +246,23 @@ def optimize():
                         return int(float(v))
                     except Exception:
                         return 0
+                # Monetary values must be truncated to 2 decimals (no rounding up)
+                # Example: 2705.64414542864 -> 2705.64 (NOT 2705.65/2706)
                 def to_money(v):
                     try:
-                        return round(float(v), 2)
-                    except Exception:
-                        return 0.0
+                        from decimal import Decimal, ROUND_DOWN, InvalidOperation, localcontext
+                        with localcontext() as ctx:
+                            ctx.prec = 28
+                            d = Decimal(str(v))
+                            return float(d.quantize(Decimal('0.01'), rounding=ROUND_DOWN))
+                    except (InvalidOperation, Exception):
+                        try:
+                            # Fallback: truncate using math for non-decimal-friendly inputs
+                            import math
+                            f = float(v)
+                            return math.floor(f * 100.0) / 100.0
+                        except Exception:
+                            return 0.0
                 user_input1_data.append({
                     'Machine type': row.get('machine_type', ''),
                     'Offered Bundle': to_int(row.get('offered_bundle', 0)),
