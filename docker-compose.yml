@@ -28,9 +28,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_BACKEND_URL: https://asmlmvp.sciata.net
     container_name: machine-resale-frontend
     ports:
-      - "80:80"
+      - "8080:80"
+    environment:
+      - VITE_BACKEND_URL=https://asmlmvp.sciata.net
     depends_on:
       backend:
         condition: service_started

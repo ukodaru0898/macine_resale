@@ -85,6 +85,23 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
           </Button>
+          {/* Optional ASML SSO login button if runtime/build env provides URL */}
+          <Button
+            fullWidth
+            variant="outlined"
+            size="large"
+            sx={{ mb: 2 }}
+            onClick={() => {
+              const ssoUrl = (window as any)?.ENV?.VITE_ASML_SSO_URL || import.meta.env.VITE_ASML_SSO_URL
+              if (ssoUrl) {
+                window.location.href = ssoUrl
+              } else {
+                alert('ASML login is not configured.')
+              }
+            }}
+          >
+            ASML Login
+          </Button>
         </form>
 
         <Box textAlign="center" mt={2}>
