@@ -9,7 +9,7 @@ export function useTableData() {
 
   const [excelTables, setExcelTables] = useState<Record<string, any[]>>({})
   const [tables, setTables] = useState<Record<string, RowData[]>>({})
-  const STORAGE_KEY = 'optimization_ui_tables_v1'
+  const STORAGE_KEY = 'optimization_ui_tables_v2'
 
   useEffect(() => {
     // initialize empty rows for each schema
