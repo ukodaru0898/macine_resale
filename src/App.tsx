@@ -264,8 +264,8 @@ const App = () => {
   const handleCloseSnack = () => setSnack({ open: false })
 
   return (
-    <Container maxWidth="lg">
-      <Box my={3} display="flex" justifyContent="space-between" alignItems="center">
+    <Box sx={{ width: '100%', margin: 0, padding: 0 }}>
+      <Box my={3} mx={3} display="flex" justifyContent="space-between" alignItems="center">
         <Box>
           <div style={{ fontSize: '14px', marginBottom: '4px', fontWeight: '500' }}>Customer</div>
           <select style={{ 
@@ -326,21 +326,23 @@ const App = () => {
         </Box>
       </Box>
 
-      <TableContainer 
-        schemas={schemas} 
-        tables={tables} 
-        onCellEdit={handleCellEdit}
-        onSaveInputs={handleSaveInputs}
-        onOptimize={handleOptimize}
-        loading={loading}
-      />
+      <Box px={3}>
+        <TableContainer 
+          schemas={schemas} 
+          tables={tables} 
+          onCellEdit={handleCellEdit}
+          onSaveInputs={handleSaveInputs}
+          onOptimize={handleOptimize}
+          loading={loading}
+        />
+      </Box>
 
       <Snackbar open={snack.open} autoHideDuration={3000} onClose={handleCloseSnack}>
         <Alert severity="info" onClose={handleCloseSnack} sx={{ width: '100%' }}>
           {snack.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   )
 }
 
