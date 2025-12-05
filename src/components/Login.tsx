@@ -37,8 +37,30 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
   }
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" bgcolor="#f5f5f5">
-      <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      minHeight="100vh"
+      sx={{
+        backgroundImage: 'url(/login-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1,
+        }
+      }}
+    >
+      <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%', position: 'relative', zIndex: 2 }}>
         <Box textAlign="center" mb={3}>
           <Box mb={2}>
             <img src="/asml-logo.png" alt="ASML Logo" style={{ height: 80, width: 'auto' }} />
