@@ -40,6 +40,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" bgcolor="#f5f5f5">
       <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
         <Box textAlign="center" mb={3}>
+          <Box mb={2}>
+            <img src="/asml-logo.png" alt="ASML Logo" style={{ height: 80, width: 'auto' }} />
+          </Box>
           <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
             Buy Back Optimizer
           </Typography>
