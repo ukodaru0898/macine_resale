@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Box, TextField, Button, Typography, Paper, Alert, Link, CircularProgress, FormHelperText } from '@mui/material'
 import { authApi } from '../utils/backend'
 
@@ -14,6 +14,23 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
   const [loading, setLoading] = useState(false)
   const [usernameError, setUsernameError] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const backgroundImages = [
+    '/carousel-1.jpg',
+    '/carousel-2.jpg',
+    '/carousel-3.png',
+    '/carousel-4.jpg',
+  ]
+
+  // Auto-rotate background images every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length)
+    }, 5000)
+    
+    return () => clearInterval(timer)
+  }, [backgroundImages.length])
 
   const validateForm = (): boolean => {
     let isValid = true
@@ -85,11 +102,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
       alignItems="center"
       minHeight="100vh"
       sx={{
-        backgroundImage: 'url(/login-bg.jpg)',
+        backgroundImage: `url(${backgroundImages[currentImageIndex]})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat',
         position: 'relative',
+        transition: 'background-image 0.8s ease-in-out',
         '&::before': {
           content: '""',
           position: 'absolute',
