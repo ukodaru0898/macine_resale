@@ -7,6 +7,14 @@ interface RegisterProps {
   onSwitchToLogin: () => void
 }
 
+interface FieldErrors {
+  username: string
+  email: string
+  password: string
+  confirmPassword: string
+  full_name: string
+}
+
 export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     username: '',
@@ -16,15 +24,73 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
     full_name: '',
     company: '',
   })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    full_name: '',
+  })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     })
+    // Clear field error when user starts typing
+    if (fieldErrors[name as keyof FieldErrors]) {
+      setFieldErrors({
+        ...fieldErrors,
+        [name]: '',
+      })
+    }
+  }
+
+  const validateUsername = (username: string): string => {
+    if (!username.trim()) return 'Username is required'
+    if (username.length < 3) return 'Username must be at least 3 characters'
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return 'Username can only contain letters, numbers, underscores, and hyphens'
+    }
+    return ''
+  }
+
+  const validateEmail = (email: string): string => {
+    if (!email.trim()) return 'Email is required'
+    if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) return 'Please enter a valid email address'
+    return ''
+  }
+
+  const validatePassword = (password: string): string => {
+    if (!password) return 'Password is required'
+    if (password.length < 6) return 'Password must be at least 6 characters'
+    return ''
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors: FieldErrors = {
+      username: validateUsername(formData.username),
+      email: validateEmail(formData.email),
+      password: validatePassword(formData.password),
+      confirmPassword: '',
+      full_name: '',
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match'
+    }
+
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = 'Full name is required'
+    }
+
+    setFieldErrors(newErrors)
+
+    return Object.values(newErrors).every((err) => err === '')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,14 +98,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
     setError('')
     setSuccess(false)
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long')
+    if (!validateForm()) {
       return
     }
 
@@ -68,7 +127,24 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
     } catch (err: any) {
       console.error('Registration error:', err)
       console.error('Error response:', err?.response?.data)
-      const errorMsg = err?.response?.data?.message || err?.message || 'Network error. Please check backend URL.'
+      
+      // Extract meaningful error message
+      let errorMsg = 'Registration failed. Please try again.'
+      
+      if (err?.response?.data?.message) {
+        errorMsg = err.response.data.message
+      } else if (err?.response?.status === 409) {
+        errorMsg = 'Username or email already exists. Please use a different one.'
+      } else if (err?.response?.status === 400) {
+        errorMsg = 'Invalid input. Please check your information.'
+      } else if (err?.response?.status === 500) {
+        errorMsg = 'Server error. Please contact support.'
+      } else if (err?.message?.includes('timeout')) {
+        errorMsg = 'Connection timeout. Please check your internet connection.'
+      } else if (err?.message) {
+        errorMsg = err.message
+      }
+      
       setError(errorMsg)
     } finally {
       setLoading(false)
@@ -94,10 +170,17 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
             name="username"
             value={formData.username}
             onChange={handleChange}
+            onBlur={() => {
+              const error = validateUsername(formData.username)
+              if (error) {
+                setFieldErrors({ ...fieldErrors, username: error })
+              }
+            }}
             margin="normal"
             required
             autoFocus
-            helperText="At least 3 characters, letters, numbers, _ or -"
+            error={!!fieldErrors.username}
+            helperText={fieldErrors.username || 'Letters, numbers, underscores, hyphens (min 3 chars)'}
           />
 
           <TextField
@@ -107,8 +190,16 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
             type="email"
             value={formData.email}
             onChange={handleChange}
+            onBlur={() => {
+              const error = validateEmail(formData.email)
+              if (error) {
+                setFieldErrors({ ...fieldErrors, email: error })
+              }
+            }}
             margin="normal"
             required
+            error={!!fieldErrors.email}
+            helperText={fieldErrors.email || 'example@domain.com'}
           />
 
           <TextField
@@ -117,7 +208,15 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
             name="full_name"
             value={formData.full_name}
             onChange={handleChange}
+            onBlur={() => {
+              if (!formData.full_name.trim()) {
+                setFieldErrors({ ...fieldErrors, full_name: 'Full name is required' })
+              }
+            }}
             margin="normal"
+            required
+            error={!!fieldErrors.full_name}
+            helperText={fieldErrors.full_name}
           />
 
           <TextField
@@ -136,9 +235,16 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
             type="password"
             value={formData.password}
             onChange={handleChange}
+            onBlur={() => {
+              const error = validatePassword(formData.password)
+              if (error) {
+                setFieldErrors({ ...fieldErrors, password: error })
+              }
+            }}
             margin="normal"
             required
-            helperText="At least 6 characters"
+            error={!!fieldErrors.password}
+            helperText={fieldErrors.password || 'At least 6 characters'}
           />
 
           <TextField
@@ -148,8 +254,15 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
             type="password"
             value={formData.confirmPassword}
             onChange={handleChange}
+            onBlur={() => {
+              if (formData.password !== formData.confirmPassword) {
+                setFieldErrors({ ...fieldErrors, confirmPassword: 'Passwords do not match' })
+              }
+            }}
             margin="normal"
             required
+            error={!!fieldErrors.confirmPassword}
+            helperText={fieldErrors.confirmPassword}
           />
 
           {error && (

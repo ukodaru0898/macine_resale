@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Box, TextField, Button, Typography, Paper, Alert, Link, CircularProgress } from '@mui/material'
+import { Box, TextField, Button, Typography, Paper, Alert, Link, CircularProgress, FormHelperText } from '@mui/material'
 import { authApi } from '../utils/backend'
 
 interface LoginProps {
@@ -12,10 +12,35 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [usernameError, setUsernameError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  const validateForm = (): boolean => {
+    let isValid = true
+    setUsernameError('')
+    setPasswordError('')
+
+    if (!username.trim()) {
+      setUsernameError('Username or email is required')
+      isValid = false
+    }
+
+    if (!password) {
+      setPasswordError('Password is required')
+      isValid = false
+    }
+
+    return isValid
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -30,7 +55,24 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
         setError(data.message || 'Login failed')
       }
     } catch (err: any) {
-      setError(err?.message || 'Network error. Please check backend URL.')
+      // Extract meaningful error message from different error sources
+      let errorMessage = 'Network error. Please try again.'
+      
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err?.response?.status === 401) {
+        errorMessage = 'Invalid username or password'
+      } else if (err?.response?.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.'
+      } else if (err?.response?.status === 500) {
+        errorMessage = 'Server error. Please contact support.'
+      } else if (err?.message?.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please check your internet connection.'
+      } else if (err?.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -78,10 +120,20 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
             fullWidth
             label="Username or Email"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value)
+              setUsernameError('')
+            }}
+            onBlur={() => {
+              if (!username.trim()) {
+                setUsernameError('Username or email is required')
+              }
+            }}
             margin="normal"
             required
             autoFocus
+            error={!!usernameError}
+            helperText={usernameError}
           />
 
           <TextField
@@ -89,9 +141,19 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister
             label="Password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setPasswordError('')
+            }}
+            onBlur={() => {
+              if (!password) {
+                setPasswordError('Password is required')
+              }
+            }}
             margin="normal"
             required
+            error={!!passwordError}
+            helperText={passwordError}
           />
 
           {error && (
